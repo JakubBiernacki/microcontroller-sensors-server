@@ -1,42 +1,36 @@
-from input_devices.input_devices import InputDevices
-from input_devices.dht11 import DHT11
-from input_devices.ds18x20 import DS18X20
-from input_devices.button import Button
-from output_devices.display import Display, DisplayView
+from init.setup_devices import setup_devices
+from init.setup_display import setup_display
+from init.setup_wifi import setup_wifi
+from init.setup_server_connection import setup_server_connection
+from init.setup_server import setup_server
+from connections.transmitters.device_data_transmitter import DeviceDataTransmitter
+from display.views.temp_view import create_temp_view
+from display.views.wifi_view import create_wifi_view
+from utils.logger import Logger
+from utils.config import Config
 
-devices = InputDevices()
+logger = Logger()
+config = Config('.env')
 
-temp_hum_device = DHT11(16)
-devices.add_device(temp_hum_device)
-
-temp_device = DS18X20(17)
-devices.add_device(temp_device)
-
-button1 = Button(14)
-button2 = Button(12)
-devices.add_device(button1)
-devices.add_device(button2)
-
-main_display = Display(1)
-button1.on_press(main_display.next_view)
-button2.on_press(main_display.prev_view)
-
-base_view = DisplayView('ROOM DATA')
-base_view.add_row('temp: [%v%] C', temp_device, 'temperature')
-base_view.add_row('hum: [%v%] %', temp_hum_device, 'humidity')
-main_display.add_view(base_view)
-
-base_view = DisplayView('NEXT DATA')
-base_view.add_row('temp: [%v%] C', temp_device, 'temperature')
-# base_view.add_row('hum: [%v%] %', temp_hum_device, 'humidity')
-main_display.add_view(base_view)
 
 def main():
-    devices.listen_all()
+    logger.info('MAIN', 'start microcontroller')
+
+    devices = setup_devices()
+    wifi_connection = setup_wifi()
+    # connection = setup_server_connection()
+    # DeviceDataTransmitter(connection, devices)
+    server = setup_server()
+    DeviceDataTransmitter(server, devices)
+
+    display = setup_display()
+    display.add_view(create_temp_view(devices))
+    display.add_view(create_wifi_view(wifi_connection))
+
     devices.wait_until_all_ready()
 
     while True:
-        main_display.update()
+        display.update()
         print('debug...', end='\r')
 
 

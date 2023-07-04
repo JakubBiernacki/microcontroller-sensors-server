@@ -1,9 +1,14 @@
-from input_devices.device import Device
+from devices.device import Device
 import onewire, ds18x20
 from time import sleep, sleep_ms
+from utils.logger import Logger
+
+logger = Logger()
 
 
 class DS18X20(Device):
+    type = 'ds18x20'
+
     def __init__(self, pin):
         super().__init__(pin)
 
@@ -21,13 +26,15 @@ class DS18X20(Device):
         while True:
             try:
                 self.ds.convert_temp()
-            except onewire.OneWireError:
+
+                sleep_ms(750)
+
+                self.temperature = self.ds.read_temp(self.device)
+            except onewire.OneWireError as err:
                 self.is_ready = False
+                logger.error(self, err)
+                sleep(self.interval)
                 continue
-
-            sleep_ms(750)
-
-            self.temperature = self.ds.read_temp(self.device)
 
             self.store_temperature_data()
 
@@ -48,8 +55,16 @@ class DS18X20(Device):
                 self.max_temperature = self.temperature
 
     def get_data(self):
-        return {
+        data = super().get_data()
+
+        data['data'] = {
             'temperature': self.temperature,
             'max_temperature': self.max_temperature,
             'min_temperature': self.min_temperature,
         }
+        data['type'] = self.type
+
+        return data
+
+
+

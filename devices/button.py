@@ -1,13 +1,15 @@
-from input_devices.device import Device
+from devices.device import Device
 from machine import Pin
 from time import sleep
 
 
 class Button(Device):
+    type = 'button'
+
     def __init__(self, pin):
+
         super().__init__(pin, 0.2)
         self._device = Pin(pin, Pin.IN, Pin.PULL_DOWN)
-
         self._last_status_is_pressed = False
 
         self._on_press_actions = []
@@ -18,7 +20,13 @@ class Button(Device):
         return self._device.value() == 1
 
     def get_data(self):
-        return {'is_pressed': self.is_pressed()}
+
+        data = super().get_data()
+
+        data['data'] = {'is_pressed': self.is_pressed()}
+        data['type'] = self.type
+
+        return data
 
     def run_on_press_actions(self):
         for action in self._on_press_actions:
